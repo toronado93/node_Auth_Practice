@@ -6,7 +6,7 @@ const getUserName = (req, res) => {
 };
 
 const getProfileData = (req, res) => {
-  const user = req.params.name;
+  const user = req.body.username;
 
   res.json({ message: `User ${user} fetch his own data` });
 };

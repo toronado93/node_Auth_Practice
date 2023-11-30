@@ -1,7 +1,9 @@
+require("dotenv").config();
 const fsPromises = require("fs").promises;
 const { v4: uuid } = require("uuid");
 const path = require("path");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const { userDB } = require("./registerController");
 
@@ -24,19 +26,42 @@ const handleLogin = async (req, res) => {
   const isPasswordMatched = bcrypt.compareSync(password, foundUser.password);
 
   if (foundUser && isPasswordMatched) {
-    // If user and password all good , create a refreshtoken and save this refresh token into the db , and return a json include users refreshtoken and login message
-    const refreshtoken = uuid();
-    // Add refresh Token to logged user
-    foundUser.refreshtoken = refreshtoken;
+    // After Matched we create jwt access and refresh token
 
-    userDB.setUsers([...otherUsers, foundUser]);
+    const roles = Object.values(foundUser.roles);
+
+    const accesstoken = jwt.sign(
+      { UserInfo: { username: foundUser.username, roles: roles } },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "30s" }
+    );
+
+    const refreshtoken = jwt.sign(
+      { username: foundUser.username },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    // Add access and refresh Token to logged user
+    const currentUser = { ...foundUser, refreshtoken };
+    userDB.setUsers([...otherUsers, currentUser]);
 
     await fsPromises.writeFile(
       path.join(__dirname, "..", "models", "user.json"),
       JSON.stringify(userDB.users)
     );
+    // Refreshtoken goes into cookie object
+    // Accesstoken goes to front-end with json
 
-    res.status(200).json({ success: "User Logged In!" });
+    res.cookie("jwt", refreshtoken, {
+      httpOnly: true,
+      sameSite: "None",
+      secure: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+    res
+      .status(200)
+      .json({ success: "User Logged In!", accesstoken: accesstoken });
   } else if (foundUser && !isPasswordMatched) {
     res.status(401).json({ message: "UnAuthorized" });
 
@@ -47,15 +72,25 @@ const handleLogin = async (req, res) => {
 const handleLogOut = async (req, res) => {
   // Take user info
   const { username, password } = req.body;
-  // If there is a match , delete and return , "You are navigated to Login Page"
 
-  const foundUser = userDB.users.find((user) => user.username === username);
-  const otherUsers = userDB.users.filter((user) => user.username !== username);
+  const cookies = req.cookies;
+  if (!cookies?.jwt) return res.sendStatus(204);
+  const refreshtoken = cookies.jwt;
+
+  // If there is a match , delete and return , "You are navigated to Login Page"
+  const foundUser = userDB.users.find(
+    (user) => user.refreshtoken === refreshtoken
+  );
+  const otherUsers = userDB.users.filter(
+    (user) => user.refreshtoken !== refreshtoken
+  );
 
   if (!foundUser) res.status(404).json({ message: "There is no such user" });
 
   if (foundUser) {
+    res.clearCookie("jwt", { httpOnly: true });
     foundUser.refreshtoken = "";
+    // I wanna also clear to accesstoken for immediate action
 
     userDB.setUsers([...otherUsers, foundUser]);
 
@@ -66,6 +101,9 @@ const handleLogOut = async (req, res) => {
     console.log(userDB.users);
 
     res.status(200).json({ success: "User Logged Out!" });
+  } else {
+    res.clearCookie("jwt", { httpOnly: true });
+    res.sendStatus(204);
   }
 };
 
