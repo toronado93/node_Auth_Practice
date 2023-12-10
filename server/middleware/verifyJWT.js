@@ -12,7 +12,6 @@ const verifyJWT = (req, res, next) => {
     res.json({ message: "There is no accesstoken in relevant place" });
 
   const token = autHeader.split(" ")[1];
-  console.log("req header investigation", req.headers);
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) return res.sendStatus(403);

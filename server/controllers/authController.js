@@ -59,9 +59,12 @@ const handleLogin = async (req, res) => {
       secure: true,
       maxAge: 24 * 60 * 60 * 1000,
     });
-    res
-      .status(200)
-      .json({ success: "User Logged In!", accesstoken: accesstoken });
+    res.status(200).json({
+      success: "User Logged In!",
+      accesstoken: accesstoken,
+      username: username,
+    });
+    console.log("user loged in!");
   } else if (foundUser && !isPasswordMatched) {
     res.status(401).json({ message: "UnAuthorized" });
 
@@ -70,11 +73,13 @@ const handleLogin = async (req, res) => {
 };
 
 const handleLogOut = async (req, res) => {
-  // Take user info
+  // We dont need username and password here . we need to catch user cookies
   const { username, password } = req.body;
 
   const cookies = req.cookies;
-  if (!cookies?.jwt) return res.sendStatus(204);
+  if (!cookies?.jwt) {
+    return res.sendStatus(204);
+  }
   const refreshtoken = cookies.jwt;
 
   // If there is a match , delete and return , "You are navigated to Login Page"
@@ -85,7 +90,9 @@ const handleLogOut = async (req, res) => {
     (user) => user.refreshtoken !== refreshtoken
   );
 
-  if (!foundUser) res.status(404).json({ message: "There is no such user" });
+  if (!foundUser) {
+    res.status(404).json({ message: "There is no such user" });
+  }
 
   if (foundUser) {
     res.clearCookie("jwt", { httpOnly: true });
@@ -101,10 +108,8 @@ const handleLogOut = async (req, res) => {
     console.log(userDB.users);
 
     res.status(200).json({ success: "User Logged Out!" });
-  } else {
-    res.clearCookie("jwt", { httpOnly: true });
-    res.sendStatus(204);
   }
+  console.log("User log out");
 };
 
 module.exports = { handleLogin, handleLogOut };

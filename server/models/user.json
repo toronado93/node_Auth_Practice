@@ -1,12 +1,1 @@
-[
-  {
-    "username": "Emin",
-    "password": "$2b$10$5GNZqnDw.liKmwsJAT70uuBfeU1skBmCmKz53rlnJGAsQX2I7rivi",
-    "roles": {
-      "Admin": 5150,
-      "Editor": 1984,
-      "User": 2001
-    },
-    "refreshtoken": ""
-  }
-]
+[{"username":"Emin","password":"$2b$10$5GNZqnDw.liKmwsJAT70uuBfeU1skBmCmKz53rlnJGAsQX2I7rivi","roles":{"User":2001},"refreshtoken":""}]

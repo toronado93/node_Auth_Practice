@@ -40,3 +40,11 @@
 .read-the-docs {
   color: #888;
 }
+
+.custom_max_width {
+  max-width: 18rem;
+  overflow: hidden;
+  word-wrap: break-word;
+  margin-left: auto;
+  margin-right: auto;
+}
